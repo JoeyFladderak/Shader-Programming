@@ -1,0 +1,154 @@
+struct Vertex
+{
+	float3 pos			: POSITION;
+	float3 normal		: ATTR2;
+	float3 binormal	: ATTR15;
+	float3 tangent	: ATTR14;
+	float2 uv			: ATTR8;
+	float4 diffuse		: COLOR;
+};
+
+struct Fragment
+{
+	float4 pos				: POSITION;
+	float2 uv				: TEXCOORD0;
+	float4 wpos			: TEXCOORD1;
+	float4 normal			: TEXCOORD2;
+	float4 binormal		: TEXCOORD3;
+	float4 tangent		: TEXCOORD4;
+	float4 texCoordProj : TEXCOORD5; 
+	float3 reflection		: TEXCOORD6;
+	float3 refraction		: TEXCOORD7;
+	float4 diffuse			: COLOR;
+};
+
+struct FresnelFragment
+{
+	float4 pos				: POSITION;
+	float2 uv				: TEXCOORD0;
+	float4 wpos			: TEXCOORD1;
+	float4 normal			: TEXCOORD2;
+	float3 refractR		: TEXCOORD3;	
+	float3 refractG		: TEXCOORD4;
+	float3 refractB		: TEXCOORD5;
+	float3 reflection		: TEXCOORD6;
+	float3 refraction		: TEXCOORD7;
+	float reflfactor			: COLOR;
+};
+
+float4 GlobalAmbient = float4(0.2, 0.2, 0.2, 1.0);
+
+float4x4 ModelViewProjection;
+float3x3 ModelMatrixIT;
+float4x4 ModelMatrix;
+float4x4 TextureMatrix;
+float4 EyePosition;
+
+sampler2D g_DiffuseMap					: TEXUNIT0  = sampler_state
+{
+    MipFilter = Linear;
+    MinFilter = Linear;
+    MagFilter = Linear;
+};
+
+uniform sampler2D g_specularmap 		: TEXUNIT1 = sampler_state
+{
+	MipFilter = Linear;
+    MinFilter = Linear;
+    MagFilter = Linear;
+};
+
+uniform sampler2D g_normalmap 		: TEXUNIT2 = sampler_state
+{
+	MipFilter = Linear;
+    MinFilter = Linear;
+    MagFilter = Linear;
+};
+
+uniform sampler2D g_emissivemap 		: TEXUNIT3 = sampler_state
+{
+	MipFilter = Linear;
+    MinFilter = Linear;
+    MagFilter = Linear;
+};
+
+uniform sampler2D g_projectivemap 		: TEXUNIT4 = sampler_state
+{
+	MipFilter = Linear;
+    MinFilter = Linear;
+    MagFilter = Linear;
+};
+
+uniform samplerCUBE g_envmap		: TEXUNIT5 = sampler_state
+{
+    MinFilter = Anisotropic;
+    MagFilter = Linear;
+	AddressU = ClampToEdge;
+	AddressV = ClampToEdge;
+};
+
+uniform sampler2D g_depthmap 		: TEXUNIT6 = sampler_state
+{
+	MipFilter = Linear;
+    MinFilter = Linear;
+    MagFilter = Linear;
+};
+
+static const float4 fTaps_PCF[9] = 
+{
+	{-1.0,-1.0, 0.0, 0.0},
+	{-1.0, 0.0, 0.0, 0.0},
+	{-1.0, 1.0, 0.0, 0.0},
+
+	{ 0.0,-1.0, 0.0, 0.0},
+	{ 0.0, 0.0, 0.0, 0.0},
+	{ 0.0, 1.0, 0.0, 0.0},
+
+	{ 1.0,-1.0, 0.0, 0.0},
+	{ 1.0, 0.0, 0.0, 0.0},
+	{ 1.0, 1.0, 0.0, 0.0}
+};
+
+struct _Material
+{
+	float4 Emissive;
+	int EmissiveMap;
+	float4 Ambient;
+	float4 Diffuse;
+	int DiffuseMap;
+	float4 Specular;
+	int SpecularMap;
+	float Shininess;
+	
+	float Reflection;
+	float Refraction;
+	float Transmittance;
+	float Fresnelpower;
+	float Fresnelscale;
+	float Fresnelbias;
+	float3 ETARatio;
+};
+
+_Material Material;
+
+const int PointLight = 0;
+const int SpotLight = 1;
+const int DirectionalLight = 2;
+
+struct _Light
+{
+	int LightType;
+	
+	float4 Color;
+	float4 Position;
+	float4 Direction;
+	
+	float ConstantAttenuation;
+	float LinearAttenuation;
+	float QuadraticAttenuation;
+
+	float InnerCosAngle;
+	float OuterCosAngle;
+};
+
+_Light Light;

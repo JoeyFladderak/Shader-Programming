@@ -1,0 +1,43 @@
+struct AppData
+{
+    in float3 Position : POSITION;
+    in float3 Color : ATTR3;
+	in float2 TexCoord : ATTR8;
+};
+
+struct v2f
+{
+    float4 Position : POSITION;
+    float4 Color : COLOR0;
+	float2 TexCoord : TEXCOORD0;
+};
+
+float4x4 ModelViewProjection;
+sampler2D Texture0 : TEX0;
+sampler2D Texture1 : TEX1;
+
+v2f mainVP( AppData IN, 
+            uniform float4x4 modelViewProjection )
+{
+    v2f OUT;
+	OUT.Position = mul(modelViewProjection, float4(IN.Position, 1));
+	OUT.Color = float4(IN.Color, 1.0);
+	OUT.TexCoord = IN.TexCoord;
+
+    return OUT;
+}
+
+float4 mainFP( v2f IN ) : COLOR
+{
+	IN.Color = tex2D(Texture0, IN.TexCoord);
+    return IN.Color;
+}
+
+technique t0
+{
+    pass p0
+    {
+        VertexProgram = compile arbvp1 mainVP( ModelViewProjection );
+        FragmentProgram = compile arbfp1 mainFP();
+    }
+}

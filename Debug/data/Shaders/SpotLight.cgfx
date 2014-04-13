@@ -1,0 +1,50 @@
+#include "General.header"
+#include "Functions.header"
+
+void mainVP( in Vertex IN, out Fragment OUT )
+{
+	OUT.pos = mul(ModelViewProjection, float4(IN.pos, 1));
+	OUT.wpos = mul(ModelMatrix, float4(IN.pos, 1));
+	OUT.normal = float4(mul(ModelMatrixIT, IN.normal), 0);
+	OUT.uv = IN.uv;
+}
+
+void mainFP( in Fragment IN, out float4 color : COLOR )
+{
+	float4 diffuse = Material.Diffuse;;
+	float4 specular = Material.Specular;
+	float4 emissive = Material.Emissive;
+
+	if(Material.DiffuseMap != 0)
+	{
+		diffuse = tex2D(g_DiffuseMap, IN.uv);
+	}
+	if(Material.SpecularMap != 0)
+	{
+		specular = tex2D(g_specularmap, IN.uv);
+	}
+	if(Material.EmissiveMap != 0)
+	{
+		emissive = tex2D(g_emissivemap, IN.uv);
+	}
+	
+	float4 diffuseLight;
+    float4 specularLight;
+    SpotAttenLighting( Light, IN.wpos.xyz, IN.normal, EyePosition, Material.Shininess, diffuseLight, specularLight );
+	
+	float4 ambientfinal = GlobalAmbient * Material.Ambient;
+	float4 diffusefinal = diffuseLight * diffuse;
+	float4 specularfinal = specularLight * specular;
+	float4 emissivefinal = emissive;
+	
+	color = ambientfinal + emissivefinal + (diffusefinal + specularfinal);
+}
+
+technique t0
+{
+    pass p0
+    {
+        VertexProgram = compile arbvp1 mainVP();
+        FragmentProgram = compile arbfp1 mainFP();
+    }
+}
