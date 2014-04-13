@@ -1,0 +1,43 @@
+#include "General.header"
+
+void mainVP(in Vertex IN, out FresnelFragment OUT)
+{
+	OUT.pos = mul(ModelViewProjection, float4(IN.pos, 1));
+	OUT.uv = IN.uv;
+	
+	float3 positionW = mul(ModelMatrix, float4(IN.pos, 1)).xyz;
+	float3 N = mul((float3x3)ModelMatrix, IN.normal);
+	N = normalize(N);
+	
+	float3 l = normalize(positionW - EyePosition.xyz);
+	
+	OUT.reflection = reflect(l, N);
+	
+	OUT.refractR = refract(l, N, Material.ETARatio.x);
+	OUT.refractG = refract(l, N, Material.ETARatio.y);
+	OUT.refractB = refract(l, N, Material.ETARatio.z);
+
+	OUT.reflfactor = Material.Fresnelbias + Material.Fresnelscale * pow(1 + dot(l, N), Material.Fresnelpower);
+}
+
+void mainFP(  in FresnelFragment IN, out float4 color : COLOR)
+{
+	float4 reflectedColor = texCUBE(g_envmap, IN.reflection);
+	float4 refractedColor;
+	
+	refractedColor.r = texCUBE(g_envmap, IN.refractR).r;
+	refractedColor.g = texCUBE(g_envmap, IN.refractG).g;
+	refractedColor.b = texCUBE(g_envmap, IN.refractB).b;
+	refractedColor.a = 1;
+	
+	color = lerp(refractedColor, reflectedColor, IN.reflfactor);
+}
+
+technique t0
+{
+    pass p0
+    {
+        VertexProgram = compile arbvp1 mainVP();
+        FragmentProgram = compile arbfp1 mainFP();
+    }
+}

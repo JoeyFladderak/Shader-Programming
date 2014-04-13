@@ -1,0 +1,69 @@
+float Attenuation(float4 p, _Light light)
+{
+	float d = distance(p, light.Position);
+	return 1 / (light.ConstantAttenuation + light.LinearAttenuation * d + light.QuadraticAttenuation * d * d);
+}
+
+float4 expand(float4 v) 
+{
+	return (v-0.5)*2;
+}
+
+float4 CalcLambert(float3 position, float3 normal, _Light light)
+{
+	float3 L = normalize(light.Position - position);
+	float A = Attenuation(float4(position, 0), light);
+	float D = saturate(dot(normal, L));
+	
+	return light.Color * D * A;
+}
+
+float4 CalcSpecularity(float3 position, float3 normal, float shine, _Light light)
+{
+	float3 L = normalize(light.Position - position);
+	float3 V = normalize(EyePosition - position);
+	float3 H = normalize(L + V);
+	float A = Attenuation(float4(position, 0), light);
+	float S = pow(max(dot(normal, H), 0), shine);
+	
+	return light.Color * S * A;
+}
+
+float tex2Dshadow( sampler2D shadowMap, float4 texCoord )
+{
+    float4 projTexColor = tex2Dproj( shadowMap, texCoord );
+    float test = texCoord.z / texCoord.w;
+    float val = ( test < ( projTexColor.r  ) ) ? 1.0f : 0.0f;
+    
+    // Don't shade pixels that are behind the light.
+    return ( texCoord.w < 0 ) ? 1.0f : val;
+}
+
+float dualConeSpotlight(float3 P, _Light  light)
+{
+    float3 V = normalize(P - light.Position);
+    float cosOuterCone = light.OuterCosAngle;
+    float cosInnerCone = light.InnerCosAngle;
+    float cosDirection = dot(V, light.Direction);
+
+    return smoothstep(cosOuterCone, cosInnerCone, cosDirection);
+}
+
+void SpotAttenLighting(	_Light  light,
+									float3 P,
+									float3 N,
+									float3 eyePosition,
+									float  shininess,
+
+									out float4 diffuseResult,
+									out float4 specularResult)
+{
+    // Compute spotlight effect
+    float spotEffect = dualConeSpotlight(P, light);
+	
+	float4 lambert = CalcLambert(P, N, light);
+	float4 phong = CalcSpecularity(P, N, shininess, light);
+	
+	diffuseResult = lambert * spotEffect;
+	specularResult = phong * spotEffect;
+}

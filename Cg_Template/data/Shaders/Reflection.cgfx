@@ -1,0 +1,31 @@
+#include "General.header"
+
+void mainVP(in Vertex IN, out Fragment OUT)
+{
+	OUT.pos = mul(ModelViewProjection, float4(IN.pos, 1));
+	OUT.uv = IN.uv;
+	
+	float3 positionW = mul(ModelMatrix, float4(IN.pos, 1)).xyz;
+	float3 N = mul((float3x3)ModelMatrix, IN.normal);
+	N = normalize(N);
+	
+	float3 l = positionW - EyePosition.xyz;
+	OUT.reflection = reflect(l, N);
+}
+
+void mainFP(  in Fragment IN, out float4 color : COLOR)
+{
+	float4 reflectedColor = texCUBE(g_envmap, IN.reflection);
+	float4 decalColor = tex2D(g_DiffuseMap, IN.uv);
+	
+	color = lerp(decalColor, reflectedColor, Material.Reflection);
+}
+
+technique t0
+{
+    pass p0
+    {
+        VertexProgram = compile arbvp1 mainVP();
+        FragmentProgram = compile arbfp1 mainFP();
+    }
+}

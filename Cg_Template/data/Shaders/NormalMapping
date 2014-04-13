@@ -1,0 +1,56 @@
+#include "General.header"
+
+float3 expand(float3 v) {return (v-0.5)*2;}
+
+void mainVP(in Vertex IN, out Fragment OUT)
+{
+	OUT.pos = mul(ModelViewProjection, float4(IN.pos, 1));
+	OUT.uv = IN.uv;
+	
+	OUT.wpos = mul(ModelMatrix, float4(IN.pos, 1));
+	OUT.normal = mul(ModelMatrixIT, float4(IN.normal, 0));
+	
+	OUT.tangent = normalize(mul(ModelMatrixIT, float4(IN.tangent, 0)));
+	OUT.binormal = cross(OUT.normal, OUT.tangent);
+}
+
+void mainFP(  in Fragment IN, out float4 color : COLOR)
+{
+	float3x3 tangentmatrix = float3x3( normalize(IN.tangent), 
+												    (normalize(IN.binormal),
+													(normalize(IN.normal);
+													
+	float3 normalTex = tex2D(g_normalmap, IN.uv).xyz;
+	float3 N = normalize(expand(normalTex));
+	N = mul(N, tangentmatrix);
+	
+	float4 L = normalize(Light.Position - IN.wpos);
+	float4 V = normalize(EyePosition - IN.wpos);
+	float4 H = normalize(L + V);
+	
+	float specular = 0;
+	float diffuse = saturate(dot(N, L));
+	if(diffuse > 0)
+	{
+		specular = pow(saturate(dot(N, H)), Material.Shininess);
+	}
+	
+	float3 I = IN.wpos - EyePosition;
+	float R = reflect(I, N);
+	float4 reflectedColor = texCUBE(g_envmap, R);
+	float4 baseColor = tex2D(g_DiffuseMap, IN.uv);
+	float4 diffuseColor = Material.Diffuse * Light.Color * diffuse;
+	float4 specularColor = Material.Specular * Light.Color * specular;
+	
+	color = baseColor * (Material.Emissive + Material.Ambient * GlobalAmbient + diffuseColor + specularColor);
+	color = lerp(color, reflectedColor, Material.Reflection);
+}
+
+technique t0
+{
+    pass p0
+    {
+        VertexProgram = compile arbvp1 mainVP();
+        FragmentProgram = compile arbfp1 mainFP();
+    }
+}
