@@ -1,0 +1,3 @@
+A small collection of shaders that showcase a variety of the more common techniques related to lighting. The shaders were made as part of an introduction to shader programming both in terms of how to make the shaders and the different techniques as well as how to apply them to a model and how to manage applying parameters and such.
+
+The shaders are made in Nvidia's CgFX language and the implementation of the framework is done in a self made OpenGL framework with FreeGlut. The framework is set up in a way to efficiently create and apply a shader and apply it to a model and to easily apply and adjust the needed parameters.
